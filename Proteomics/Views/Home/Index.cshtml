@@ -1,0 +1,191 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@section Prosum {
+
+    <link href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/2.0.5/css/dataTables.jqueryui.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/fixedheader/3.2.3/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
+
+    <style>
+        .btn-export-excel{
+         background-color:#198754 !important;
+         color:white !important;
+        }
+
+        thead input {
+            width: 100%;
+        }
+    </style>
+}
+
+
+<div class="card">
+    <div class="card-header">
+        Protein Summary Information 
+    </div>
+    <div class="card-body">
+        <table id="SelectAllPs" class="display" style="width:100%;">
+            <thead>
+                <tr>
+                    @* <th>ProteinSummaryID</th> *@
+                    <th>AccessionID</th>
+                    <th>GeSymbol</th>
+                    <th>ProtName</th>
+                    <th>GeNames</th>
+                    <th>TotalPs</th>
+                    <th>MePSMs</th>
+                    <th>Detected</th>
+               </tr>
+           </thead>
+       </table>
+    </div>
+</div>
+
+
+@section Scripts{
+
+<script src="https://cdn.datatables.net/2.0.5/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/fixedheader/3.2.3/js/dataTables.fixedHeader.min.js"></script>
+
+<script>
+
+        // new DataTable('#SelectAllPs', {
+        //     layout: {
+        //         bottomEnd: {
+        //             paging: {
+        //                 boundaryNumbers: true
+        //             }
+        //         }
+        //     }
+        // });
+
+
+    $(document).ready(function () {
+            $('#SelectAllPs thead tr')
+                .clone(true)
+                .addClass('filters')
+                .appendTo('#SelectAllPs thead');
+
+
+
+        $('#SelectAllPs').DataTable({
+            "ajax": {
+                "url": "@Url.Action("ListProteinSummary","Home")",
+                "type": "GET",
+                "datatype": "json"
+            },
+            "colums": [
+                { "data": "ProteinSummaryID" },
+                { "data": "AccessionID" },
+                { "data": "GeSymbol" },
+                { "data": "ProtName" },
+                { "data": "GeNames" },
+                { "data": "TotalPs" },
+                { "data": "MePSMs" },
+                { "data": "Detected" }
+            ],
+            columnDefs:[
+                {
+                    targets:0,
+                    arguments:false
+                }
+            ],
+            dom:"Bfrtip",
+            buttons:[
+                {
+                 extends:"excelhtml5",
+                 text:"Export Excel",
+                 filename: "Protein Summary Report",
+                 title:"",
+                 exportOptions: {
+                     colums: [2,3,4,5,6,7,8]
+                    },
+                    className:"btn-export-excel"
+                },
+                {
+                  extends: "pdfhtml5",
+                  text: "Export PDF",
+                  filename: "Protein Summary Report",
+                  title: "",
+                  exportOptions: {
+                            colums: [2, 3, 4, 5, 6, 7, 8]
+                        },
+                        className: "btn-export-excel"
+               },
+               {
+                  extends: "Print",
+                  filename: "Protein Summary Report",
+                  title: "",
+                  exportOptions: {
+                            colums: [2, 3, 4, 5, 6, 7, 8]
+                        },
+                        className: "btn-export-excel"
+              },
+                
+            ],
+                orderCellsTop: true,
+                fixedHeader: true,
+                initComplete: function () {
+                    var api = this.api();
+
+                    // For each column
+                    api
+                        .columns()
+                        .eq(0)
+                        .each(function (colIdx) {
+                            // Set the header cell to contain the input element
+                            var cell = $('.filters th').eq(
+                                $(api.column(colIdx).header()).index()
+                            );
+                            var title = $(cell).text();
+                            $(cell).html('<input type="text" placeholder="' + title + '" />');
+
+                            // On every keypress in this input
+                            $(
+                                'input',
+                                $('.filters th').eq($(api.column(colIdx).header()).index())
+                            )
+                                .off('keyup change')
+                                .on('change', function (e) {
+                                    // Get the search value
+                                    $(this).attr('title', $(this).val());
+                                    var regexr = '({search})'; //$(this).parents('th').find('select').val();
+
+                                    var cursorPosition = this.selectionStart;
+                                    // Search the column for that value
+                                    api
+                                        .column(colIdx)
+                                        .search(
+                                            this.value != ''
+                                                ? regexr.replace('{search}', '(((' + this.value + ')))')
+                                                : '',
+                                            this.value != '',
+                                            this.value == ''
+                                        )
+                                        .draw();
+                                })
+                                .on('keyup', function (e) {
+                                    e.stopPropagation();
+
+                                    $(this).trigger('change');
+                                    $(this)
+                                        .focus()[0]
+                                        .setSelectionRange(cursorPosition, cursorPosition);
+                                });
+                        });
+                },
+        });
+
+    });
+
+</script>
+}
+
